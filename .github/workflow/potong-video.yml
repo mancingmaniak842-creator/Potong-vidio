@@ -1,6 +1,5 @@
 name: Potong Video YouTube
 
-# Pemicu workflow: dapat dijalankan secara manual dari tab Actions
 on:
   workflow_dispatch:
     inputs:
@@ -20,32 +19,27 @@ on:
 
 jobs:
   cut-video-job:
-    runs-on: ubuntu-latest  # Menggunakan runner Linux (Ubuntu)
+    runs-on: ubuntu-latest
     
     steps:
-      # Langkah 1: Checkout kode dari repository
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Langkah 2: Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      # Langkah 3: Install FFmpeg (SANGAT PENTING!)
       - name: Install FFmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
-      # Langkah 4: Install library Python yang dibutuhkan
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pytube moviepy
 
-      # Langkah 5: Jalankan skrip Python dengan input dari workflow
       - name: Run Video Cutter Script
         run: |
           python potong_video.py \
@@ -54,10 +48,9 @@ jobs:
             --end "${{ github.event.inputs.end_time }}" \
             --output "${{ github.event.inputs.output_filename }}"
       
-      # Langkah 6: Upload hasil video sebagai artifact
       - name: Upload Video Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: video-hasil-potong # Nama artifact yang akan muncul
-          path: ${{ github.event.inputs.output_filename }} # Path ke file yang akan diupload
+          name: video-hasil-potong
+          path: ${{ github.event.inputs.output_filename }}
           
