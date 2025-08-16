@@ -41,7 +41,7 @@ jobs:
             output.mp4
 
       - name: Upload output as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: youtube-cut
           path: output.mp4
