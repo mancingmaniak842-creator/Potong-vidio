@@ -1,4 +1,4 @@
-name: YouTube Cutter
+name: YouTube Cut
 
 on:
   workflow_dispatch:
@@ -7,48 +7,41 @@ on:
         description: "YouTube URL"
         required: true
       start:
-        description: "Start time (e.g. 00:00:10)"
+        description: "Start time (e.g. 00:01:23)"
         required: true
       end:
-        description: "End time (e.g. 00:00:30)"
+        description: "End time (e.g. 00:02:34)"
         required: true
 
 jobs:
-  cut-upload:
+  cut:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install dependencies
+      - name: Install tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt update
+          sudo apt install -y ffmpeg
           pip install yt-dlp
-          curl https://rclone.org/install.sh | sudo bash
 
-      - name: Setup rclone config
+      - name: Download best quality
         run: |
-          mkdir -p ~/.config/rclone
-          echo "${{ secrets.RCLONE_CONF }}" > ~/.config/rclone/rclone.conf
+          yt-dlp -f "bestvideo+bestaudio/best" -o "input.%(ext)s" "${{ github.event.inputs.url }}"
 
-      - name: Debug rclone.conf
+      - name: Cut & re-encode (CapCut friendly)
         run: |
-          echo "===== rclone.conf ====="
-          cat ~/.config/rclone/rclone.conf | sed 's/access_token.*/access_token":"***"/'
+          ffmpeg -i input.* \
+            -ss "${{ github.event.inputs.start }}" \
+            -to "${{ github.event.inputs.end }}" \
+            -c:v libx264 -preset fast -crf 23 \
+            -c:a aac -b:a 192k \
+            -movflags +faststart \
+            output.mp4
 
-      - name: Download YouTube video (with cookies)
-        run: |
-          echo "${{ secrets.YT_COOKIES }}" > cookies.txt
-          yt-dlp --cookies cookies.txt -f "bestvideo+bestaudio/best" -o "input.%(ext)s" "${{ github.event.inputs.url }}"
-
-      - name: Cut video
-        run: |
-          in_file=$(ls input.* | head -n 1)
-          ffmpeg -i "$in_file" -ss ${{ github.event.inputs.start }} -to ${{ github.event.inputs.end }} -c copy output.mp4
-
-      - name: Upload to Google Drive
-        run: |
-          rclone mkdir gdrive:YouTube-Cut || true
-          rclone copy output.mp4 gdrive:YouTube-Cut -P
+      - name: Upload output as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: youtube-cut
+          path: output.mp4
