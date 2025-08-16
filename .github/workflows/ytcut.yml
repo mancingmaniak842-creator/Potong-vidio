@@ -1,0 +1,48 @@
+name: YouTube Cut & Upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'YouTube video URL'
+        required: true
+      start:
+        description: 'Start time (format hh:mm:ss)'
+        required: true
+      end:
+        description: 'End time (format hh:mm:ss)'
+        required: true
+      filename:
+        description: 'Output filename (tanpa .mp4)'
+        required: true
+
+jobs:
+  cut-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y ffmpeg yt-dlp rclone
+
+    - name: Setup rclone config
+      run: |
+        mkdir -p ~/.config/rclone
+        echo "${{ secrets.RCLONE_CONF }}" > ~/.config/rclone/rclone.conf
+
+    - name: Download video (best quality)
+      run: |
+        yt-dlp -f "bestvideo+bestaudio/best" -o "input.%(ext)s" "${{ github.event.inputs.url }}"
+
+    - name: Cut video
+      run: |
+        ffmpeg -i input.* -ss ${{ github.event.inputs.start }} -to ${{ github.event.inputs.end }} -c copy "${{ github.event.inputs.filename }}.mp4"
+
+    - name: Upload to Google Drive
+      run: |
+        rclone mkdir gdrive:YouTube-Cut || true
+        rclone copy "${{ github.event.inputs.filename }}.mp4" gdrive:YouTube-Cut
