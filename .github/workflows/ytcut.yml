@@ -4,45 +4,52 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: 'YouTube video URL'
+        description: 'YouTube URL'
         required: true
+        default: 'https://youtu.be/xxxxxxx'
       start:
-        description: 'Start time (format hh:mm:ss)'
+        description: 'Start time (ex: 00:01:23)'
         required: true
+        default: '00:00:00'
       end:
-        description: 'End time (format hh:mm:ss)'
+        description: 'End time (ex: 00:02:34)'
         required: true
-      filename:
-        description: 'Output filename (tanpa .mp4)'
-        required: true
+        default: '00:01:00'
 
 jobs:
   cut-upload:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y ffmpeg yt-dlp rclone
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install yt-dlp rclone
 
-    - name: Setup rclone config
-      run: |
-        mkdir -p ~/.config/rclone
-        echo "${{ secrets.RCLONE_CONF }}" > ~/.config/rclone/rclone.conf
+      # ✅ Step download video (pakai cookies secret)
+      - name: Download video with yt-dlp
+        run: |
+          echo "${{ secrets.YT_COOKIES }}" > cookies.txt
+          yt-dlp --cookies cookies.txt -f "bestvideo+bestaudio/best" -o "input.%(ext)s" "${{ github.event.inputs.url }}"
 
-    - name: Download video (best quality)
-      run: |
-        yt-dlp -f "bestvideo+bestaudio/best" -o "input.%(ext)s" "${{ github.event.inputs.url }}"
+      # ✅ Step potong video
+      - name: Cut video
+        run: |
+          ext=$(ls input.* | sed 's/^.*\.//')
+          ffmpeg -i input.$ext -ss "${{ github.event.inputs.start }}" -to "${{ github.event.inputs.end }}" -c copy output.mp4
 
-    - name: Cut video
-      run: |
-        ffmpeg -i input.* -ss ${{ github.event.inputs.start }} -to ${{ github.event.inputs.end }} -c copy "${{ github.event.inputs.filename }}.mp4"
+      # ✅ Setup rclone pakai secret RCLONE_CONF
+      - name: Setup Rclone
+        run: |
+          mkdir -p ~/.config/rclone
+          echo "${{ secrets.RCLONE_CONF }}" > ~/.config/rclone/rclone.conf
 
-    - name: Upload to Google Drive
-      run: |
-        rclone mkdir gdrive:YouTube-Cut || true
-        rclone copy "${{ github.event.inputs.filename }}.mp4" gdrive:YouTube-Cut
+      # ✅ Upload ke Google Drive (folder YouTube-Cut)
+      - name: Upload to Google Drive
+        run: |
+          rclone mkdir gdrive:YouTube-Cut
+          rclone copy output.mp4 gdrive:YouTube-Cut -P
