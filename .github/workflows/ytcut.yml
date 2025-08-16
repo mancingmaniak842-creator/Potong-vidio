@@ -1,23 +1,23 @@
-name: YouTube Cut
+name: YouTube Cut (dengan cookies dari Secret)
 
 on:
   workflow_dispatch:
     inputs:
       url:
-        description: "YouTube URL"
+        description: "URL YouTube"
         required: true
       start:
-        description: "Start time (e.g. 00:01:23)"
+        description: "Waktu mulai (misal: 00:01:23)"
         required: true
       end:
-        description: "End time (e.g. 00:02:34)"
+        description: "Waktu selesai (misal: 00:02:34)"
         required: true
 
 jobs:
   cut:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Install tools
@@ -26,11 +26,17 @@ jobs:
           sudo apt install -y ffmpeg
           pip install yt-dlp
 
-      - name: Download best quality
+      - name: Buat file cookies dari Secret
         run: |
-          yt-dlp -f "bestvideo+bestaudio/best" -o "input.%(ext)s" "${{ github.event.inputs.url }}"
+          echo "${{ secrets.YT_COOKIES }}" > cookies.txt
+          # optional: cek apakah file terbentuk
+          ls -l cookies.txt
 
-      - name: Cut & re-encode (CapCut friendly)
+      - name: Download video kualitas terbaik
+        run: |
+          yt-dlp --cookies cookies.txt -f "bestvideo+bestaudio/best" -o "input.%(ext)s" "${{ github.event.inputs.url }}"
+
+      - name: Potong & encode ulang (CapCut friendly)
         run: |
           ffmpeg -i input.* \
             -ss "${{ github.event.inputs.start }}" \
@@ -40,7 +46,7 @@ jobs:
             -movflags +faststart \
             output.mp4
 
-      - name: Upload output as artifact
+      - name: Upload hasil sebagai artifact
         uses: actions/upload-artifact@v4
         with:
           name: youtube-cut
