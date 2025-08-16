@@ -1,20 +1,17 @@
-name: YouTube Cut & Upload
+name: YouTube Cutter
 
 on:
   workflow_dispatch:
     inputs:
       url:
-        description: 'YouTube URL'
+        description: "YouTube URL"
         required: true
-        default: 'https://youtu.be/xxxxxxx'
       start:
-        description: 'Start time (ex: 00:01:23)'
+        description: "Start time (e.g. 00:00:10)"
         required: true
-        default: '00:00:00'
       end:
-        description: 'End time (ex: 00:02:34)'
+        description: "End time (e.g. 00:00:30)"
         required: true
-        default: '00:01:00'
 
 jobs:
   cut-upload:
@@ -31,22 +28,27 @@ jobs:
           pip install yt-dlp
           curl https://rclone.org/install.sh | sudo bash
 
-      - name: Download video with yt-dlp
+      - name: Setup rclone config
+        run: |
+          mkdir -p ~/.config/rclone
+          echo "${{ secrets.RCLONE_CONF }}" > ~/.config/rclone/rclone.conf
+
+      - name: Debug rclone.conf
+        run: |
+          echo "===== rclone.conf ====="
+          cat ~/.config/rclone/rclone.conf | sed 's/access_token.*/access_token":"***"/'
+
+      - name: Download YouTube video (with cookies)
         run: |
           echo "${{ secrets.YT_COOKIES }}" > cookies.txt
           yt-dlp --cookies cookies.txt -f "bestvideo+bestaudio/best" -o "input.%(ext)s" "${{ github.event.inputs.url }}"
 
       - name: Cut video
         run: |
-          ext=$(ls input.* | sed 's/^.*\.//')
-          ffmpeg -i input.$ext -ss "${{ github.event.inputs.start }}" -to "${{ github.event.inputs.end }}" -c copy output.mp4
-
-      - name: Setup Rclone
-        run: |
-          mkdir -p ~/.config/rclone
-          echo "${{ secrets.RCLONE_CONF }}" > ~/.config/rclone/rclone.conf
+          in_file=$(ls input.* | head -n 1)
+          ffmpeg -i "$in_file" -ss ${{ github.event.inputs.start }} -to ${{ github.event.inputs.end }} -c copy output.mp4
 
       - name: Upload to Google Drive
         run: |
-          rclone mkdir gdrive:YouTube-Cut
+          rclone mkdir gdrive:YouTube-Cut || true
           rclone copy output.mp4 gdrive:YouTube-Cut -P
