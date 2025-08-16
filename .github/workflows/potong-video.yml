@@ -35,13 +35,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
-      - name: Install Python Dependencies
+      # MENGGABUNGKAN INSTALASI & MENJALANKAN SKRIP DALAM SATU LANGKAH
+      - name: Install Dependencies and Run Script
         run: |
+          # 1. Install semua library yang dibutuhkan
           python -m pip install --upgrade pip
           pip install pytube moviepy
+          
+          echo "--- Instalasi Selesai, Menjalankan Skrip ---"
 
-      - name: Run Video Cutter Script
-        run: |
+          # 2. Jalankan skrip Python
           python potong_video.py \
             --url "${{ github.event.inputs.url }}" \
             --start "${{ github.event.inputs.start_time }}" \
