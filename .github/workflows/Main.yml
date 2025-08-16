@@ -1,0 +1,17 @@
+name: CI/CD Test
+
+on: [push] # Pemicu: Jalankan workflow setiap kali ada push ke repositori
+
+jobs:
+  build: # Nama job: build
+    runs-on: ubuntu-latest # Runner: Jalankan job ini di runner Ubuntu versi terbaru
+
+    steps:
+      - uses: actions/checkout@v4 # Step 1: Mengambil kode dari repositori
+        
+      - name: Install dependencies # Step 2: Menamai step ini
+        run: npm install # Perintah untuk menjalankan: menginstal dependensi NPM
+
+      - name: Run tests # Step 3: Menamai step ini
+        run: npm test # Perintah untuk menjalankan: menjalankan tes
+        
