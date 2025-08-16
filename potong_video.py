@@ -1,5 +1,5 @@
 import os
-import argparse  # Import library untuk parsing argumen
+import argparse
 from pytube import YouTube
 from moviepy.editor import VideoFileClip, AudioFileClip
 
@@ -63,9 +63,7 @@ def potong_video_youtube(url, waktu_mulai, waktu_selesai, nama_output):
         if os.path.exists(temp_audio_file):
             os.remove(temp_audio_file)
 
-# --- Bagian Utama untuk Menjalankan Skrip ---
 if __name__ == "__main__":
-    # Setup parser untuk menerima argumen dari command line
     parser = argparse.ArgumentParser(description="Potong video YouTube melalui URL.")
     parser.add_argument("--url", required=True, help="URL video YouTube yang akan dipotong.")
     parser.add_argument("--start", required=True, help="Waktu mulai pemotongan (format MM:SS atau HH:MM:SS).")
@@ -74,6 +72,5 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    # Menjalankan fungsi utama dengan argumen yang diberikan
     potong_video_youtube(args.url, args.start, args.end, args.output)
-          
+    
