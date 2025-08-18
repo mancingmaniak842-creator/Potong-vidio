@@ -29,25 +29,26 @@ jobs:
       - name: Buat file cookies dari Secret
         run: |
           echo "${{ secrets.YT_COOKIES }}" > cookies.txt
-          # optional: cek apakah file terbentuk
           ls -l cookies.txt
 
-      - name: Download video kualitas terbaik
+      - name: Download & Cut langsung (pakai yt-dlp)
         run: |
-          yt-dlp --cookies cookies.txt -f "bestvideo+bestaudio/best" -o "input.%(ext)s" "${{ github.event.inputs.url }}"
+          yt-dlp --cookies cookies.txt \
+            --download-sections "*${{ github.event.inputs.start }}-${{ github.event.inputs.end }}" \
+            -f "bestvideo+bestaudio/best" \
+            -o "output.%(ext)s" \
+            "${{ github.event.inputs.url }}"
 
-      - name: Potong & encode ulang (CapCut friendly)
+      - name: Encode ulang biar CapCut friendly
         run: |
-          ffmpeg -i input.* \
-            -ss "${{ github.event.inputs.start }}" \
-            -to "${{ github.event.inputs.end }}" \
+          ffmpeg -i output.* \
             -c:v libx264 -preset fast -crf 23 \
             -c:a aac -b:a 192k \
             -movflags +faststart \
-            output.mp4
+            final.mp4
 
       - name: Upload hasil sebagai artifact
         uses: actions/upload-artifact@v4
         with:
           name: youtube-cut
-          path: output.mp4
+          path: final.mp4
