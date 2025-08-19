@@ -12,6 +12,10 @@ on:
       end:
         description: "Waktu selesai (misal: 00:02:34)"
         required: true
+      resolution:
+        description: "Resolusi maksimal (misal: 1080, 1440, 2160)"
+        required: false
+        default: "1080"
 
 jobs:
   cut:
@@ -35,7 +39,7 @@ jobs:
         run: |
           yt-dlp --cookies cookies.txt \
             --download-sections "*${{ github.event.inputs.start }}-${{ github.event.inputs.end }}" \
-            -f "bestvideo+bestaudio/best" \
+            -f "bestvideo[height<=${{ github.event.inputs.resolution }}]+bestaudio/best[height<=${{ github.event.inputs.resolution }}]" \
             -o "output.%(ext)s" \
             "${{ github.event.inputs.url }}"
 
